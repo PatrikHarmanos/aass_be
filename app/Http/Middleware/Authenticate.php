@@ -22,9 +22,9 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        if (!$request->expectsJson()) {
-            return $this->responseError(null, 'Un Authenticated Access', JsonResponse::HTTP_UNAUTHORIZED);
-        }
+//        if (!$request->expectsJson()) {
+//            return $this->responseError(null, 'Un Authenticated Access', JsonResponse::HTTP_UNAUTHORIZED);
+//        }
     }
 
     /**
@@ -38,8 +38,8 @@ class Authenticate extends Middleware
      */
     protected function unauthenticated($request, array $guards)
     {
-        throw new HttpResponseException(
-            $this->responseError(null,  'Un Authenticated Access', JsonResponse::HTTP_UNAUTHORIZED)
-        );
+//        throw new HttpResponseException(
+//            $this->responseError(null,  'Un Authenticated Access', JsonResponse::HTTP_UNAUTHORIZED)
+//        );
     }
 }

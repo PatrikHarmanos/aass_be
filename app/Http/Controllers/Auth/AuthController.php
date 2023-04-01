@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
@@ -10,6 +11,7 @@ use App\Repositories\AuthRepository;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -57,15 +59,13 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         try {
-            $credentials = $request->only('email', 'password');
+            $response = Http::post('http://localhost:8001/api/auth/login', [
+                'email' => $request->email,
+                'password' => $request->password
+            ]);
+            $data = $response->json();
 
-            if ($token = $this->guard()->attempt($credentials)) {
-                $data =  $this->respondWithToken($token);
-            } else {
-                return $this->responseError(null, 'Invalid Email and Password !', Response::HTTP_UNAUTHORIZED);
-            }
-
-            return $this->responseSuccess($data, 'Logged In Successfully !');
+            return $this->responseSuccess($data['data']);
         } catch (\Exception $e) {
             return $this->responseError(null, $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -95,13 +95,15 @@ class AuthController extends Controller
     {
         try {
             $requestData = $request->only('name', 'email', 'is_admin', 'password', 'password_confirmation');
-            $user = $this->authRepository->register($requestData);
-            if ($user) {
-                if ($token = $this->guard()->attempt($requestData)) {
-                    $data =  $this->respondWithToken($token);
-                    return $this->responseSuccess($data, 'User Registered and Logged in Successfully', Response::HTTP_OK);
-                }
-            }
+            $response = Http::post('http://localhost:8001/api/auth/register', [
+                'name' => $requestData['name'],
+                'email' => $requestData['email'],
+                'is_admin' => $requestData['is_admin'],
+                'password' => $requestData['password'],
+                'password_confirmation' => $requestData['password_confirmation']
+            ]);
+            $data = $response->json();
+            return $this->responseSuccess($data, 'User Registered Successfully !');
         } catch (\Exception $e) {
             return $this->responseError(null, $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
@@ -119,11 +121,17 @@ class AuthController extends Controller
      *     @OA\Response(response=404, description="Resource Not Found"),
      * )
      */
-    public function me(): JsonResponse
+    public function me(Request $request): JsonResponse
     {
         try {
-            $data = $this->guard()->user();
-            return $this->responseSuccess($data, 'Profile Fetched Successfully !');
+            $response = Http::withHeaders([
+                'Authorization' =>  'Bearer ' . $request->bearerToken(),
+                'Content-Type' => 'application/json'
+            ])->get('http://localhost:8001/api/auth/me');
+
+            $data = $response->json();
+
+            return $this->responseSuccess($data['data']);
         } catch (\Exception $e) {
             return $this->responseError(null, $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
